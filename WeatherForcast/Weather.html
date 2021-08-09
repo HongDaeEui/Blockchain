@@ -31,7 +31,7 @@
       <!-- weather info -->
       <div class="col-7 m-auto">
         <div style="display: flex;">
-          <div id="timer" style="display:inline;"></div>
+          <div id="timer" style="display:inline;" onclick="startBet()">Betting start</div>
           <h2 class="display-3" id="weather"></h2>
         </div>
         <strong id="temp"></strong><br />
@@ -60,7 +60,7 @@
       <button class="btn btn-success btn-sm" style="color:white;">Your Forecast</button>
       <button class="btn btn-success btn-sm" style="color:white;">Current Rate</button>
       <button class="btn btn-success btn-sm" style="color:white;">Get Result</button>
-      <button class="btn btn-success btn-sm" style="color:white;">All Result</button>
+      <button class="btn btn-success btn-sm" style="color:white;">Your Prize</button>
     </div>
 
   </div>
@@ -112,37 +112,44 @@
     }, 0);
 
     //timer
-    var today = new Date()
-    let minutes = today.getMinutes();
-    let seconds = today.getSeconds();
-    let timeCal = (minutes * 60) + seconds - 60;
-
-    let time = 3600 - timeCal;
+    let time = 21600;
+    let hour = "";
     let min = "";
     let sec = "";
 
-    var x = setInterval(function startTimer() {
+    function startBet() {
+      var x = setInterval(startTimer, 1000);
+    }
 
-      if (time < 0) {
-        clearlnterval(x);
-        document.getElementById("timer") = innerHTML = "Next game";
-        setTimeout(startTimer, 144000);
+    function startTimer() {
+
+      if (time >= 0) {
+        hour = parseInt(time / 3600);
+        min = parseInt((time % 3600) / 60);
+        sec = time % 60;
+        document.getElementById("timer").innerHTML = "Before Closing <br>" +
+          hour + "hour " + min + "min " + sec + "s ";
+        time--;
       }
 
-      min = parseInt(time / 60);
-      sec = time % 60;
-
-      document.getElementById("timer").innerHTML = "Before Closing <br>" + min + "min " + sec + "s ";
-      time--;
-
-
-    }, 1000);
-
-
-    function reStartBet() {
-      document.getElementById("timer").style.display = "none";
-      document.getElementById("startBet").style.display = "";
+      if (time < 0) {
+        clearInterval(x);
+        document.getElementById("timer").innerHTML = "Next game";
+      }
     }
+
+    //timer restart
+    function restartTimer() {
+      if (document.getElementById("timer").innerText == "Next game") {
+        time = 21600;
+        setTimeout(function request() {
+          startTimer();
+          setTimeout(request, 1000);
+        }, 1000);
+      }
+    }
+    const y = document.getElementById("timer");
+    y.addEventListener('click', restartTimer);
   </script>
 </body>
 
