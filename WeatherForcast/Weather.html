@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
   <link rel="stylesheet" href="./css/style.css" type="text/css">
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="./lib/web3.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible&display=swap" rel="stylesheet">
 
   <title>My Weather App</title>
 </head>
@@ -31,7 +35,7 @@
       <!-- weather info -->
       <div class="col-7 m-auto">
         <div style="display: flex;">
-          <div id="timer" style="display:inline;" onclick="startBet()">Betting start</div>
+          <div id="timer" style="display:inline;" onclick="startBet(), getContract()">Betting start</div>
           <h2 class="display-3" id="weather"></h2>
         </div>
         <strong id="temp"></strong><br />
@@ -51,8 +55,10 @@
         alt="sunny" width="20">
       <input type="radio" value="3" name="weather"> Rainny <img
         src="img/weather_rain_raining_cloud_cloudy_icon_124154.svg" alt="sunny" width="20">
-      <input type=" text" id="tokenInput" style="width:80px;" placeholder="bet token">
-      <button class="btn btn-success btn-sm">Go</button>
+      <input type=" text" id="tokenInput" style="width:80px;color: black;" placeholder="100 day" value="100">
+      <button class="btn btn-info btn-sm" onclick="goBetting()">Go</button>
+      <button class="btn btn-info btn-sm" onclick="removeVotes()">Again</button>
+      <button class="btn btn-info btn-sm" onclick="getToken()">Get Token</button>
     </div>
 
     <!-- result -->
@@ -61,96 +67,583 @@
       <button class="btn btn-success btn-sm" style="color:white;">Current Rate</button>
       <button class="btn btn-success btn-sm" style="color:white;">Get Result</button>
       <button class="btn btn-success btn-sm" style="color:white;">Your Prize</button>
+      <button class="btn btn-success btn-sm" style="color:white;" onclick="init()">지갑</button>
     </div>
 
+    <!-- administer function -->
+    <button class="btn btn-primary btn-sm" style="color:white;" onclick="createContract()">createContract</button>
+    <button class="btn btn-primary btn-sm" style="color:white;" onclick="getContract()">getContract</button>
+    <div id="account"></div>
+    <div id="contract"></div>
+
   </div>
-  <script>
-    //weather screen
-    function weather() {
-      let temp = document.querySelector("#temp");
-      let min = document.querySelector("#min");
-      let max = document.querySelector("#max");
-      let wind = document.querySelector("#wind");
-      let weather = document.querySelector("#weather");
-      let time = document.querySelector("#time")
-      let icon = document.querySelector("#icon");
-      let icon_url =
-        "https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/";
 
-      axios
-        .get(
-          "https://api.openweathermap.org/data/2.5/find?q=Seoul&units=metric&appid=1034276485da9af63063f5b42dfa7820"
-        )
-        .then(function (response) {
-          console.log(response.data);
-          let wdata = response.data.list[0];
-          let exdata = response.data.list[0].weather[0];
-          var now = new Date();
-          var hours = ('0' + now.getHours()).slice(-2);
-          var minutes = ('0' + now.getMinutes()).slice(-2);
-          var seconds = ('0' + now.getSeconds()).slice(-2);
-          var timeString = hours + ':' + minutes + ':' + seconds;
-
-          temp.innerText = wdata.main.temp + "°C";
-          min.innerText = wdata.main.temp_min;
-          max.innerText = wdata.main.temp_max;
-          wind.innerText = wdata.wind.speed;
-          time.innerText = timeString;
-
-
-          weather.innerText = exdata.main + "," + exdata.description;
-          icon.setAttribute("src", icon_url + exdata.icon + ".png");
-        })
-        .catch(function (error) {
-          console.log(error);
-        })
-    }
-
-    setTimeout(function request() {
-      weather();
-      setTimeout(request, 1439000);
-    }, 0);
-
-    //timer
-    let time = 21600;
-    let hour = "";
-    let min = "";
-    let sec = "";
-
-    function startBet() {
-      var x = setInterval(startTimer, 1000);
-    }
-
-    function startTimer() {
-
-      if (time >= 0) {
-        hour = parseInt(time / 3600);
-        min = parseInt((time % 3600) / 60);
-        sec = time % 60;
-        document.getElementById("timer").innerHTML = "Before Closing <br>" +
-          hour + "hour " + min + "min " + sec + "s ";
-        time--;
-      }
-
-      if (time < 0) {
-        clearInterval(x);
-        document.getElementById("timer").innerHTML = "Next game";
-      }
-    }
-
-    //timer restart
-    function restartTimer() {
-      if (document.getElementById("timer").innerText == "Next game") {
-        time = 21600;
-        setTimeout(function request() {
-          startTimer();
-          setTimeout(request, 1000);
-        }, 1000);
-      }
-    }
-    const y = document.getElementById("timer");
-    y.addEventListener('click', restartTimer);
-  </script>
 </body>
+<script>
+  //web3.js
+  let provider;
+  let web3;
+  let account;
+  let contract;
+  let newContract;
+
+  async function init() {
+
+    if (window.ethereum) {
+      web3 = new Web3(window.ethereum);
+      try {
+        // Request account access if needed
+        await window.ethereum.enable();
+        // Acccounts now exposed
+        web3.eth.getAccounts().then(function (accounts) {
+          account = accounts[0]
+          document.getElementById("account").innerText = account
+        })
+      } catch (error) {}
+    }
+    // Legacy dapp browsers...
+    else if (window.web3) {
+      // Use Mist/MetaMask's provider.
+      web3 = window.web3;
+      console.log("Injected web3 detected.");
+    }
+  }
+  init()
+
+  //connect contract
+  function getContract() {
+    let abi = [{
+        "inputs": [{
+          "internalType": "uint256",
+          "name": "total",
+          "type": "uint256"
+        }],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "anonymous": false,
+        "inputs": [{
+            "indexed": true,
+            "internalType": "address",
+            "name": "tokenOwner",
+            "type": "address"
+          },
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "spender",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "tokens",
+            "type": "uint256"
+          }
+        ],
+        "name": "Approval",
+        "type": "event"
+      },
+      {
+        "anonymous": false,
+        "inputs": [{
+            "indexed": true,
+            "internalType": "address",
+            "name": "from",
+            "type": "address"
+          },
+          {
+            "indexed": true,
+            "internalType": "address",
+            "name": "to",
+            "type": "address"
+          },
+          {
+            "indexed": false,
+            "internalType": "uint256",
+            "name": "tokens",
+            "type": "uint256"
+          }
+        ],
+        "name": "Transfer",
+        "type": "event"
+      },
+      {
+        "inputs": [{
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "delegate",
+            "type": "address"
+          }
+        ],
+        "name": "allowance",
+        "outputs": [{
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{
+            "internalType": "address",
+            "name": "delegate",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "numTokens",
+            "type": "uint256"
+          }
+        ],
+        "name": "approve",
+        "outputs": [{
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [{
+          "internalType": "address",
+          "name": "tokenOwner",
+          "type": "address"
+        }],
+        "name": "balanceOf",
+        "outputs": [{
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [{
+          "internalType": "uint8",
+          "name": "",
+          "type": "uint8"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getToken",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "name",
+        "outputs": [{
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [{
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [{
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{
+            "internalType": "address",
+            "name": "receiver",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "numTokens",
+            "type": "uint256"
+          }
+        ],
+        "name": "transfer",
+        "outputs": [{
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [{
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "buyer",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "numTokens",
+            "type": "uint256"
+          }
+        ],
+        "name": "transferFrom",
+        "outputs": [{
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ]
+
+    let abi2 = [{
+        "inputs": [],
+        "name": "destroy",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "removeVote",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [{
+          "internalType": "uint256",
+          "name": "weatherCode",
+          "type": "uint256"
+        }],
+        "name": "result",
+        "outputs": [{
+            "internalType": "bool",
+            "name": "",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "voteCloudy",
+        "outputs": [{
+          "internalType": "bool",
+          "name": "sucess",
+          "type": "bool"
+        }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "voteRainny",
+        "outputs": [{
+          "internalType": "bool",
+          "name": "sucess",
+          "type": "bool"
+        }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "votersResult",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "voteSunny",
+        "outputs": [{
+          "internalType": "bool",
+          "name": "success",
+          "type": "bool"
+        }],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+      },
+      {
+        "inputs": [],
+        "name": "getVote",
+        "outputs": [{
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "",
+            "type": "uint256"
+          }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getVoter",
+        "outputs": [{
+          "internalType": "enum WeatherBet.VoteTypes",
+          "name": "",
+          "type": "uint8"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [],
+        "name": "getVotersResult",
+        "outputs": [{
+          "components": [{
+              "internalType": "address",
+              "name": "vote",
+              "type": "address"
+            },
+            {
+              "internalType": "enum WeatherBet.VoteTypes",
+              "name": "result",
+              "type": "uint8"
+            }
+          ],
+          "internalType": "struct WeatherBet.VotersResult[]",
+          "name": "",
+          "type": "tuple[]"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }],
+        "name": "voters",
+        "outputs": [{
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      },
+      {
+        "inputs": [{
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }],
+        "name": "votes",
+        "outputs": [{
+          "internalType": "enum WeatherBet.VoteTypes",
+          "name": "",
+          "type": "uint8"
+        }],
+        "stateMutability": "view",
+        "type": "function"
+      }
+    ]
+    contract = new web3.eth.Contract(abi, "0x71231B3D71130d1A350E7ef50FC5046FaDF745E5")
+    document.getElementById("contract").innerText = contract._address
+    contract2 = new web3.eth.Contract(abi2, "0xA90FF71570e73AD4646a9e80F4ba9B82F49c5948")
+    document.getElementById("contract").innerText += contract2._address
+    console.log(contract2);
+  }
+  getContract();
+
+  function createContract() {
+    let bytecode =
+      "0x60806040523480156200001157600080fd5b50336000806101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055506000600160008073ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff02191690836003811115620000b857620000b762000176565b5b02179055504260048190555061546042620000d49190620000e0565b600581905550620001a5565b6000620000ed826200013d565b9150620000fa836200013d565b9250827fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0382111562000132576200013162000147565b5b828201905092915050565b6000819050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602160045260246000fd5b61175480620001b56000396000f3fe608060405234801561001057600080fd5b50600436106100b45760003560e01c806383197ef01161007157806383197ef01461016e578063b43b5fb014610178578063bd78f0fe14610182578063d8bff5a5146101a0578063d953cea6146101d0578063da58c7d9146101ee576100b4565b80630242f351146100b95780632b37f53c146100d95780633c594059146100f757806349aa4ee21461012857806379471101146101325780637c5b41b414610150575b600080fd5b6100c161021e565b6040516100d09392919061149b565b60405180910390f35b6100e16104bb565b6040516100ee9190611480565b60405180910390f35b610111600480360381019061010c9190611245565b61050f565b60405161011f929190611457565b60405180910390f35b610130610826565b005b61013a610a48565b604051610147919061143c565b60405180910390f35b610158610b37565b604051610165919061143c565b60405180910390f35b610176610c27565b005b610180610c98565b005b61018a610ebb565b604051610197919061141a565b60405180910390f35b6101ba60048036038101906101b591906111eb565b610fa7565b6040516101c79190611480565b60405180910390f35b6101d8610fc7565b6040516101e5919061143c565b60405180910390f35b61020860048036038101906102039190611245565b6110b7565b60405161021591906113ad565b60405180910390f35b6000806000600554421061023157600080fd5b6000806000805b6002805490508110156104a9576001600381111561025957610258611662565b5b600160006002848154811061027157610270611691565b5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff1660038111156102f6576102f5611662565b5b141561030b578380610307906115bb565b9450505b6002600381111561031f5761031e611662565b5b600160006002848154811061033757610336611691565b5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff1660038111156103bc576103bb611662565b5b14156103d15782806103cd906115bb565b9350505b6003808111156103e4576103e3611662565b5b60016000600284815481106103fc576103fb611691565b5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16600381111561048157610480611662565b5b1415610496578180610492906115bb565b9250505b80806104a1906115bb565b915050610238565b50828282955095509550505050909192565b6000600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16905090565b60008060055442101561052157600080fd5b600080600073bae4b2ac594699e6ec7d154f552a0db499529c2273ffffffffffffffffffffffffffffffffffffffff166370a08231306040518263ffffffff1660e01b815260040161057391906113ad565b60206040518083038186803b15801561058b57600080fd5b505afa15801561059f573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105c39190611272565b90508560038111156105d8576105d7611662565b5b60038111156105ea576105e9611662565b5b600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16600381111561064957610648611662565b5b141561080f576001925060005b6002805490508110156107575786600381111561067657610675611662565b5b600381111561068857610687611662565b5b60016000600284815481106106a05761069f611691565b5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff16600381111561072557610724611662565b5b1415610744576003600081548092919061073e906115bb565b91905055505b808061074f906115bb565b915050610656565b5060035481610766919061150b565b915073bae4b2ac594699e6ec7d154f552a0db499529c2273ffffffffffffffffffffffffffffffffffffffff1663a9059cbb33846040518363ffffffff1660e01b81526004016107b79291906113f1565b602060405180830381600087803b1580156107d157600080fd5b505af11580156107e5573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906108099190611218565b50610818565b60009250600091505b828294509450505050915091565b600554421061083457600080fd5b61083d336110f6565b61084657600080fd5b6000600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff021916908360038111156108a9576108a8611662565b5b021790555060005b6002805490508110156109a2573373ffffffffffffffffffffffffffffffffffffffff16600282815481106108e9576108e8611691565b5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16141561098f5760006002828154811061094657610945611691565b5b9060005260206000200160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505b808061099a906115bb565b9150506108b1565b5073bae4b2ac594699e6ec7d154f552a0db499529c2273ffffffffffffffffffffffffffffffffffffffff1663a9059cbb3360646040518363ffffffff1660e01b81526004016109f39291906113c8565b602060405180830381600087803b158015610a0d57600080fd5b505af1158015610a21573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610a459190611218565b50565b60006005544210610a5857600080fd5b610a61336110f6565b610ac9576002339080600181540180825580915050600190039060005260206000200160009091909190916101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505b60018060003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff02191690836003811115610b2b57610b2a611662565b5b02179055506001905090565b60006005544210610b4757600080fd5b610b50336110f6565b610bb8576002339080600181540180825580915050600190039060005260206000200160009091909190916101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505b6002600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff02191690836003811115610c1b57610c1a611662565b5b02179055506001905090565b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610c7f57600080fd5b3373ffffffffffffffffffffffffffffffffffffffff16ff5b60008054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614610cf057600080fd5b60005b600280549050811015610eb8576007604051806040016040528060028481548110610d2157610d20611691565b5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020016001600060028681548110610d7f57610d7e611691565b5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060009054906101000a900460ff166003811115610e0457610e03611662565b5b8152509080600181540180825580915050600190039060005260206000200160009091909190915060008201518160000160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff16021790555060208201518160000160146101000a81548160ff02191690836003811115610e9e57610e9d611662565b5b021790555050508080610eb0906115bb565b915050610cf3565b50565b60606007805480602002602001604051908101604052809291908181526020016000905b82821015610f9e578382906000526020600020016040518060400160405290816000820160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff1681526020016000820160149054906101000a900460ff166003811115610f7957610f78611662565b5b6003811115610f8b57610f8a611662565b5b8152505081526020019060010190610edf565b50505050905090565b60016020528060005260406000206000915054906101000a900460ff1681565b60006005544210610fd757600080fd5b610fe0336110f6565b611048576002339080600181540180825580915050600190039060005260206000200160009091909190916101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505b6003600160003373ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200190815260200160002060006101000a81548160ff021916908360038111156110ab576110aa611662565b5b02179055506001905090565b600281815481106110c757600080fd5b906000526020600020016000915054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b60008060009050600280549050811015611190578273ffffffffffffffffffffffffffffffffffffffff166002828154811061113557611134611691565b5b9060005260206000200160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff161415611186576001915050611192565b6000915050611192565b505b919050565b6000813590506111a6816116d9565b92915050565b6000815190506111bb816116f0565b92915050565b6000813590506111d081611707565b92915050565b6000815190506111e581611707565b92915050565b600060208284031215611201576112006116c0565b5b600061120f84828501611197565b91505092915050565b60006020828403121561122e5761122d6116c0565b5b600061123c848285016111ac565b91505092915050565b60006020828403121561125b5761125a6116c0565b5b6000611269848285016111c1565b91505092915050565b600060208284031215611288576112876116c0565b5b6000611296848285016111d6565b91505092915050565b60006112ab838361136f565b60408301905092915050565b6112c08161153c565b82525050565b6112cf8161153c565b82525050565b60006112e0826114e2565b6112ea81856114fa565b93506112f5836114d2565b8060005b8381101561132657815161130d888261129f565b9750611318836114ed565b9250506001810190506112f9565b5085935050505092915050565b61133c8161154e565b82525050565b61134b81611597565b82525050565b61135a81611597565b82525050565b611369816115a9565b82525050565b60408201600082015161138560008501826112b7565b5060208201516113986020850182611342565b50505050565b6113a78161158d565b82525050565b60006020820190506113c260008301846112c6565b92915050565b60006040820190506113dd60008301856112c6565b6113ea6020830184611360565b9392505050565b600060408201905061140660008301856112c6565b611413602083018461139e565b9392505050565b6000602082019050818103600083015261143481846112d5565b905092915050565b60006020820190506114516000830184611333565b92915050565b600060408201905061146c6000830185611333565b611479602083018461139e565b9392505050565b60006020820190506114956000830184611351565b92915050565b60006060820190506114b0600083018661139e565b6114bd602083018561139e565b6114ca604083018461139e565b949350505050565b6000819050602082019050919050565b600081519050919050565b6000602082019050919050565b600082825260208201905092915050565b60006115168261158d565b91506115218361158d565b92508261153157611530611633565b5b828204905092915050565b60006115478261156d565b9050919050565b60008115159050919050565b6000819050611568826116c5565b919050565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000819050919050565b60006115a28261155a565b9050919050565b60006115b48261158d565b9050919050565b60006115c68261158d565b91507fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff8214156115f9576115f8611604565b5b600182019050919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601260045260246000fd5b7f4e487b7100000000000000000000000000000000000000000000000000000000600052602160045260246000fd5b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b600080fd5b600481106116d6576116d5611662565b5b50565b6116e28161153c565b81146116ed57600080fd5b50565b6116f98161154e565b811461170457600080fd5b50565b6117108161158d565b811461171b57600080fd5b5056fea26469706673582212208a62aa17942b1bc870f2e5a1f68bfc32919afee13b1fa070fdca35f3206c8e3764736f6c63430008060033"
+    web3.eth.sendTransaction({
+      from: account,
+      data: bytecode
+    }).on('receipt', function (receipt) {
+      console.log(receipt.contractAddress)
+      newContract = receipt.contractAddress;
+    })
+  }
+
+  //get Token
+  function getToken() {
+    contract.methods.getToken().send({
+      from: account
+    })
+  }
+
+  //removeVote
+  function removeVotes() {
+    contract2.methods.removeVote().send({
+      from: account
+    })
+  }
+
+
+  //go betting
+  function goBetting() {
+    const weatherList = document.getElementsByName('weather');
+    let numToken = document.getElementById('tokenInput').value;
+    console.log(numToken);
+
+    weatherList.forEach((choice) => {
+      if (choice.checked) {
+        if (choice.value == "1") {
+          contract2.methods.voteSunny().send({
+            from: account
+          })
+          console.log(choice.value);
+        } else if (choice.value == "2") {
+          contract2.methods.voteCloudy().send({
+            from: account
+          }).on('receipt', function () {
+            contract.methods.transfer("0xA90FF71570e73AD4646a9e80F4ba9B82F49c5948", numToken).send({
+              from: account
+            })
+          })
+        } else if (choice.value == "3") {
+          contract2.methods.voteRainny().send({
+            from: account
+          })
+        }
+      }
+    })
+
+
+  }
+
+  //weather screen
+  function weather() {
+    let temp = document.querySelector("#temp");
+    let min = document.querySelector("#min");
+    let max = document.querySelector("#max");
+    let wind = document.querySelector("#wind");
+    let weather = document.querySelector("#weather");
+    let time = document.querySelector("#time")
+    let icon = document.querySelector("#icon");
+    let icon_url =
+      "https://openweathermap.org/themes/openweathermap/assets/vendor/owm/img/widgets/";
+
+    axios
+      .get(
+        "https://api.openweathermap.org/data/2.5/find?q=Seoul&units=metric&appid=1034276485da9af63063f5b42dfa7820"
+      )
+      .then(function (response) {
+        console.log(response.data);
+        let wdata = response.data.list[0];
+        let exdata = response.data.list[0].weather[0];
+        var now = new Date();
+        var hours = ('0' + now.getHours()).slice(-2);
+        var minutes = ('0' + now.getMinutes()).slice(-2);
+        var seconds = ('0' + now.getSeconds()).slice(-2);
+        var timeString = hours + ':' + minutes + ':' + seconds;
+
+        temp.innerText = wdata.main.temp + "°C";
+        min.innerText = wdata.main.temp_min;
+        max.innerText = wdata.main.temp_max;
+        wind.innerText = wdata.wind.speed;
+        time.innerText = timeString;
+
+
+        weather.innerText = exdata.main + "," + exdata.description;
+        icon.setAttribute("src", icon_url + exdata.icon + ".png");
+      })
+      .catch(function (error) {
+        console.log(error);
+      })
+  }
+
+  setTimeout(function request() {
+    weather();
+    setTimeout(request, 1440000);
+  }, 0);
+
+  //timer
+  let time = 21600;
+  let hour = "";
+  let min = "";
+  let sec = "";
+
+  function startBet() {
+    var x = setInterval(startTimer, 1000);
+  }
+
+  function startTimer() {
+
+    if (time >= 0) {
+      hour = parseInt(time / 3600);
+      min = parseInt((time % 3600) / 60);
+      sec = time % 60;
+      document.getElementById("timer").innerHTML = "Before Closing <br>" +
+        hour + "hour " + min + "min " + sec + "s ";
+      time--;
+    }
+
+    if (time < 0) {
+      clearInterval(x);
+      document.getElementById("timer").innerHTML = "Next game";
+    }
+  }
+
+  //timer restart
+  function restartTimer() {
+    if (document.getElementById("timer").innerText == "Next game") {
+      time = 21600;
+      setTimeout(function request() {
+        startTimer();
+        setTimeout(request, 1000);
+      }, 1000);
+    }
+  }
+  const y = document.getElementById("timer");
+  y.addEventListener('click', restartTimer);
+</script>
 
 </html>
