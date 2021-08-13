@@ -22,7 +22,31 @@
 
 #weather {
     display: table;
-    margin-left: 100px;
+    margin-left: 180px;
     margin-right: auto;
 
 }
+
+.font {
+    font-family: 'Atkinson Hyperlegible', sans-serif;
+}
+
+.finder {
+
+    text-align: center;
+}
+
+.cards {
+    display: inline-block;
+    vertical-align: middle;
+    background-color: #353b48;
+    color: white;
+    height: 200px;
+    padding: 20px;
+}
+
+.administer {
+    margin-top: 100px;
+}
+
+#currentrate {}
