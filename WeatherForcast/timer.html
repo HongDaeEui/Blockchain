@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="timer"></div>
+
+    <script>
+        var time = 3600;
+        var min = "";
+        var sec = "";
+
+        var x = setInterval(function () {
+            min = parseInt(time / 60);
+            sec = time % 60;
+
+            document.getElementById("timer").innerHTML = min + " min" + sec + " s";
+            time--;
+            if (time < 0) {
+                clearlnterval(x);
+                document.getElementById("timer") = innerHTML = "Time Over";
+            }
+        }, 1000);
+    </script>
+</body>
+
+</html>
