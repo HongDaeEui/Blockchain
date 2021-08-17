@@ -22,7 +22,7 @@
 
 #weather {
     display: table;
-    margin-left: 180px;
+    margin-left: 200px;
     margin-right: auto;
 
 }
@@ -49,4 +49,6 @@
     margin-top: 100px;
 }
 
-#currentrate {}
+#getresult {
+    border: thick solid #353b48;
+}
