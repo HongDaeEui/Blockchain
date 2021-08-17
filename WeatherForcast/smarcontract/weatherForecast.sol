@@ -1,90 +1,9 @@
-pragma solidity 0.8.6;
-
-contract ERC20Basic {
-
-    string public constant name = "Daily Value";
-    string public constant symbol = "Day";
-    uint8 public constant decimals = 0;  
-
-    event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
-    event Transfer(address indexed from, address indexed to, uint tokens);
-
-    mapping(address => uint256) balances;
-
-    mapping(address => mapping (address => uint256)) allowed;
-    
-    uint256 totalSupply_;
-
-    using SafeMath for uint256;
-
-   constructor(uint256 total) public {  
-		totalSupply_ = total;
-		balances[address(this)] = totalSupply_;
-    }  
-
-    function totalSupply() public view returns (uint256) {
-	return totalSupply_;
-    }
-    
-    function balanceOf(address tokenOwner) public view returns (uint) {
-        return balances[tokenOwner];
-    }
-    
-      function getToken() public{
-          require(balances[address(this)] >= 1000);
-       balances[address(this)] = balances[address(this)].sub(100);
-       balances[msg.sender] = balances[msg.sender].add(100);
-    }
-
-    function transfer(address receiver, uint numTokens) public returns (bool) {
-        require(numTokens <= balances[msg.sender]);
-        balances[msg.sender] = balances[msg.sender].sub(numTokens);
-        balances[receiver] = balances[receiver].add(numTokens);
-        emit Transfer(msg.sender, receiver, numTokens);
-        return true;
-    }
-
-    function approve(address delegate, uint numTokens) public returns (bool) {
-        allowed[msg.sender][delegate] = numTokens;
-        emit Approval(msg.sender, delegate, numTokens);
-        return true;
-    }
-
-    function allowance(address owner, address delegate) public view returns (uint) {
-        return allowed[owner][delegate];
-    }
-
-    function transferFrom(address owner, address buyer, uint numTokens) public returns (bool) {
-        require(numTokens <= balances[owner]);    
-        require(numTokens <= allowed[owner][msg.sender]);
-    
-        balances[owner] = balances[owner].sub(numTokens);
-        allowed[owner][msg.sender] = allowed[owner][msg.sender].sub(numTokens);
-        balances[buyer] = balances[buyer].add(numTokens);
-        emit Transfer(owner, buyer, numTokens);
-        return true;
-    }
-}
-
-library SafeMath { 
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-      assert(b <= a);
-      return a - b;
-    }
-    
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-      uint256 c = a + b;
-      assert(c >= a);
-      return c;
-    }
-}
-
 contract WeatherBet {
-    address owner;
+    address public owner;
     enum VoteTypes { Notbetted, sunny, cloudy, rainny }
     mapping (address => VoteTypes) public votes;
     address[] public voters;
-    uint winners;
+    uint public winners;
     uint startTime;
     uint timeout;
     struct VotersResult {
@@ -93,7 +12,9 @@ contract WeatherBet {
     }
     string weatherResult;
     VotersResult[] votersresults;
+    mapping (address => uint) prizes;
     
+    event Result(bool win, uint prize);
     
     modifier onlyOwner() {require(msg.sender == owner); _;}
 
@@ -128,21 +49,17 @@ contract WeatherBet {
     
     function removeVote() public {
         require(block.timestamp < timeout);
-        require (addressInArray(msg.sender)); 
+        require (addressInArray(msg.sender));
         votes[msg.sender] = VoteTypes.Notbetted;
-        for(uint i=0; i<voters.length; i++){
-         if(voters[i] == msg.sender){
-            voters[i] = 0x0000000000000000000000000000000000000000;
-            }
-        }
+        ERC20Basic(0x00906AC77D16753dBEE1ddbab66a5a47936c4CDC).transfer(msg.sender, 100);
     }
+        
     
     function getVoter() public view returns (VoteTypes) {
         return votes[msg.sender];
     }
     
     function getVote() public view returns (uint, uint, uint){
-        require(block.timestamp < timeout);
         uint _sunnyVotes = 0;
         uint _cloudyVotes = 0;
         uint _rainnyVotes = 0;
@@ -160,35 +77,43 @@ contract WeatherBet {
         return ( _sunnyVotes, _cloudyVotes, _rainnyVotes );
       }
       
-      function result(uint weatherCode) public returns (bool, uint) {
+      function result(uint weatherCode) public {
           bool win;
           uint prize;
-          uint totalPrize = ERC20Basic(0xbae4b2Ac594699E6EC7D154f552A0DB499529c22).balanceOf(address(this));
-          if(votes[msg.sender] == VoteTypes(weatherCode)) {
-              win = true;
-              for(uint i=0; i<voters.length;i++) {
+          uint totalPrize = ERC20Basic(0x00906AC77D16753dBEE1ddbab66a5a47936c4CDC).balanceOf(address(this));
+          
+          for(uint i=0; i<voters.length;i++) {
                  if(votes[voters[i]] == VoteTypes(weatherCode)) {
                      winners++;
                  }
-              }
+          }
+                 
+          if(votes[msg.sender] == VoteTypes(weatherCode)) {
+              win = true;
               prize =  totalPrize/winners;
-              ERC20Basic(0xbae4b2Ac594699E6EC7D154f552A0DB499529c22).transfer(msg.sender, prize);
+              prizes[msg.sender] += prize;
+              ERC20Basic(0x00906AC77D16753dBEE1ddbab66a5a47936c4CDC).transfer(msg.sender, prize);
+              
+              emit Result(win, prize );
           }else {
               win = false;
               prize = 0;
+              emit Result(win, prize );
           }
-          return (win, prize );
+      }
+      
+      function getPrizes() public view returns(uint) {
+       return prizes[msg.sender];   
       }
     
     
-     function votersResult() public {
+     function votersResult() public onlyOwner{
          for(uint i=0; i<voters.length; i++) {
             votersresults.push(VotersResult(voters[i], votes[voters[i]]));
          }
         }
     
      function getVotersResult() public view returns(VotersResult[] memory) {
-        // require(block.timestamp >= startTime + 1 hours);
         return votersresults;
         }
     
@@ -202,7 +127,7 @@ contract WeatherBet {
         }
     }
     
-        function destroy() public {
+        function destroy() public onlyOwner {
         selfdestruct(payable(msg.sender));
     }
     
