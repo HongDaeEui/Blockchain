@@ -95,8 +95,9 @@
 
     const pokemonCard = document.querySelector("#pokemon");
     let h = [];
-    h.push(`<div class='card'>`);
+
     for (let [index, pokemon] of pokemonInfo.entries()) {
+      h.push(`<div class='card'>`);
       h.push(`<img src="${pokemon.picture}"/>
       <div class='container'>
       <h4>${pokemon.name}</h4>
