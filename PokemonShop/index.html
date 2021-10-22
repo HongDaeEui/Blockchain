@@ -3,269 +3,310 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="stylesheet" type="text/css" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+      integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+      crossorigin="anonymous"
+    />
     <script src="lib/web3.min.js"></script>
   </head>
   <body>
     <div id="account"></div>
+    <div id="contract"></div>
     <header>
       <h1 class="title">Pokemon Shop</h1>
     </header>
     <main id="pokemon"></main>
     <button type="button" class="connectBtn" onclick="connect()">Wallet</button>
     <button class="getContract" onclick="getContract()">Get Contract</button>
-    <div id="contract"></div>
-  </body>
-  <script>
-    let pokemonInfo = [
-      {
-        id: 0,
-        name: "Holly",
-        picture: "image/Blacky.png",
-        age: 5,
-        location: "New York",
-        price: "3ETH",
-      },
+    <button class="getAdopters" onclick="getAdopters()">Check Adopters</button>
+    <ul class="list-group"></ul>
 
-      {
-        id: 1,
-        name: "Hope",
-        picture: "image/Bulbasaur.png",
-        age: 8,
-        location: "Chicago",
-        price: "2ETH",
-      },
+    <script>
+      let adopterList = [];
+      let pokemonInfo = [
+        {
+          id: 0,
+          name: "Holly",
+          picture: "image/Blacky.png",
+          age: 5,
+          location: "New York",
+          price: "3ETH",
+        },
 
-      {
-        id: 2,
-        name: "Love",
-        picture: "image/Charmander.jpg",
-        age: 4,
-        location: "Minnesota",
-        price: "1ETH",
-      },
-      {
-        id: 3,
-        name: "Future",
-        picture: "image/Eevee.png",
-        age: 2,
-        location: "Kentucky",
-        price: "3ETH",
-      },
-      {
-        id: 4,
-        name: "Heebong",
-        picture: "image/Glaceon.png",
-        age: 7,
-        location: "Seoul",
-        price: "2ETH",
-      },
-      {
-        id: 5,
-        name: "Coco",
-        picture: "image/Metamon.png",
-        age: 3,
-        location: "Pennsylvania",
-        price: "1ETH",
-      },
-      {
-        id: 6,
-        name: "Alpha",
-        picture: "image/Pukrin.png",
-        age: 7,
-        location: "Michigan",
-        price: "2ETH",
-      },
-      {
-        id: 7,
-        name: "Beta",
-        picture: "image/Purin.png",
-        age: 5,
-        location: "Los Angeles",
-        price: "3ETH",
-      },
-      {
-        id: 8,
-        name: "Niko",
-        picture: "image/Snorlax.png",
-        age: 4,
-        location: "Tokyo",
-        price: "2ETH",
-      },
-    ];
+        {
+          id: 1,
+          name: "Hope",
+          picture: "image/Bulbasaur.png",
+          age: 8,
+          location: "Chicago",
+          price: "2ETH",
+        },
 
-    const pokemonCard = document.querySelector("#pokemon");
-    let h = [];
+        {
+          id: 2,
+          name: "Love",
+          picture: "image/Charmander.jpg",
+          age: 4,
+          location: "Minnesota",
+          price: "1ETH",
+        },
+        {
+          id: 3,
+          name: "Future",
+          picture: "image/Eevee.png",
+          age: 2,
+          location: "Kentucky",
+          price: "3ETH",
+        },
+        {
+          id: 4,
+          name: "Heebong",
+          picture: "image/Glaceon.png",
+          age: 7,
+          location: "Seoul",
+          price: "2ETH",
+        },
+        {
+          id: 5,
+          name: "Coco",
+          picture: "image/Metamon.png",
+          age: 3,
+          location: "Pennsylvania",
+          price: "1ETH",
+        },
+        {
+          id: 6,
+          name: "Alpha",
+          picture: "image/Pukrin.png",
+          age: 7,
+          location: "Michigan",
+          price: "2ETH",
+        },
+        {
+          id: 7,
+          name: "Beta",
+          picture: "image/Purin.png",
+          age: 5,
+          location: "Los Angeles",
+          price: "3ETH",
+        },
+        {
+          id: 8,
+          name: "Niko",
+          picture: "image/Snorlax.png",
+          age: 4,
+          location: "Tokyo",
+          price: "2ETH",
+        },
+      ];
 
-    for (let [index, pokemon] of pokemonInfo.entries()) {
-      h.push(`<div class='card'>`);
-      h.push(`<img src="${pokemon.picture}"/>
+      const pokemonCard = document.querySelector("#pokemon");
+      let h = [];
+
+      for (let [index, pokemon] of pokemonInfo.entries()) {
+        h.push(`<div class='card'>`);
+        h.push(`<img src="${pokemon.picture}"/>
       <div class='container'>
       <h4>${pokemon.name}</h4>
       <h5 id='connectPrice' class='money'>${pokemon.price}</h5>
       <h6>Age:${pokemon.age}</h6>
       <h6>Location:${pokemon.location}</h6>
-      <button class="btn" onclick="getAdopters(${index})" style="display:inline">Adopt</button>
+      <button class="btn" onclick="adopt(${index})" style="display:inline">Adopt</button>
       <div id = "showText"></div></div></div>`);
-      console.log(`${index}`);
-    }
-    pokemonCard.innerHTML = h.join("");
+        console.log(`${index}`);
+      }
+      pokemonCard.innerHTML = h.join("");
 
-    // let list = "";
-    // for (let i = 0; i < pokemonInfo.length; i++) {
-    //   nameInfo = pokemonInfo[i].name;
-    //   photoInfo = pokemonInfo[i].picture;
-    //   ageInfo = pokemonInfo[i].age;
-    //   breedInfo = pokemonfo = pokemonInfo[i].location;
-    //   priceInfo = pokemonInfo[i].price;
+      // let list = "";
+      // for (let i = 0; i < pokemonInfo.length; i++) {
+      //   nameInfo = pokemonInfo[i].name;
+      //   photoInfo = pokemonInfo[i].picture;
+      //   ageInfo = pokemonInfo[i].age;
+      //   breedInfo = pokemonfo = pokemonInfo[i].location;
+      //   priceInfo = pokemonInfo[i].price;
 
-    //   list +=
-    //     "<div class='card'>" +
-    //     "<img src=" +
-    //     photoInfo +
-    //     " />" +
-    //     "<div class='container'>" +
-    //     "<h4>" +
-    //     nameInfo +
-    //     "</h4>" +
-    //     "<h5 id='connectPrice' class='money'>" +
-    //     priceInfo +
-    //     "</h5>" +
-    //     "<h6>" +
-    //     "Age: " +
-    //     ageInfo +
-    //     "</h6><h6>" +
-    //     "Breed: " +
-    //     breedInfo +
-    //     "</h6>" +
-    //     '<button class="btn" id="' +
-    //     i +
-    //     '" onclick="getAdopters(' +
-    //     i +
-    //     ')" style="display:inline">' +
-    //     "Adopt" +
-    //     "</button>" +
-    //     "<div id = 'showText" +
-    //     i +
-    //     "'></div>" +
-    //     " </div>" +
-    //     " </div>";
-    // }
+      //   list +=
+      //     "<div class='card'>" +
+      //     "<img src=" +
+      //     photoInfo +
+      //     " />" +
+      //     "<div class='container'>" +
+      //     "<h4>" +
+      //     nameInfo +
+      //     "</h4>" +
+      //     "<h5 id='connectPrice' class='money'>" +
+      //     priceInfo +
+      //     "</h5>" +
+      //     "<h6>" +
+      //     "Age: " +
+      //     ageInfo +
+      //     "</h6><h6>" +
+      //     "Breed: " +
+      //     breedInfo +
+      //     "</h6>" +
+      //     '<button class="btn" id="' +
+      //     i +
+      //     '" onclick="getAdopters(' +
+      //     i +
+      //     ')" style="display:inline">' +
+      //     "Adopt" +
+      //     "</button>" +
+      //     "<div id = 'showText" +
+      //     i +
+      //     "'></div>" +
+      //     " </div>" +
+      //     " </div>";
+      // }
 
-    // document.getElementById("pokemon").innerHTML = list;
+      // document.getElementById("pokemon").innerHTML = list;
 
-    let provider;
-    let web3;
-    let account;
-    async function connect() {
-      if (window.ethereum) {
-        web3 = new Web3(window.ethereum);
-        try {
-          // Request account access if needed
-          await window.ethereum.enable();
-          // Acccounts now exposed
-          web3.eth.getAccounts().then(function (accounts) {
-            account = accounts[0];
-            document.getElementById("account").innerText = account;
+      let provider;
+      let web3;
+      let account;
+      async function connect() {
+        if (window.ethereum) {
+          web3 = new Web3(window.ethereum);
+          try {
+            // Request account access if needed
+            await window.ethereum.enable();
+            // Acccounts now exposed
+            web3.eth.getAccounts().then(function (accounts) {
+              account = accounts[0];
+              document.getElementById("account").innerText = account;
+            });
+          } catch (error) {}
+        }
+        // Legacy dapp browsers...
+        else if (window.web3) {
+          // Use Mist/MetaMask's provider.
+          web3 = window.web3;
+          console.log("Injected web3 detected.");
+        }
+      }
+
+      function getContract() {
+        let abi = [
+          {
+            inputs: [],
+            stateMutability: "nonpayable",
+            type: "constructor",
+          },
+          {
+            inputs: [
+              {
+                internalType: "uint256",
+                name: "petId",
+                type: "uint256",
+              },
+            ],
+            name: "adopt",
+            outputs: [
+              {
+                internalType: "uint256",
+                name: "",
+                type: "uint256",
+              },
+            ],
+            stateMutability: "nonpayable",
+            type: "function",
+          },
+          {
+            inputs: [
+              {
+                internalType: "uint256",
+                name: "",
+                type: "uint256",
+              },
+            ],
+            name: "adopters",
+            outputs: [
+              {
+                internalType: "address",
+                name: "",
+                type: "address",
+              },
+            ],
+            stateMutability: "view",
+            type: "function",
+          },
+          {
+            inputs: [],
+            name: "destroy",
+            outputs: [],
+            stateMutability: "payable",
+            type: "function",
+          },
+          {
+            inputs: [],
+            name: "getAdopters",
+            outputs: [
+              {
+                internalType: "address[9]",
+                name: "",
+                type: "address[9]",
+              },
+            ],
+            stateMutability: "view",
+            type: "function",
+          },
+        ];
+
+        contract = new web3.eth.Contract(
+          abi,
+          "0xbbE4aabcAd9Fb442CDd5c543D85cCDc97Ae8EEfD"
+        );
+        document.getElementById("contract").innerHTML = contract._address;
+        console.log(contract);
+      }
+
+      function adopt(id) {
+        console.log(id);
+        contract.methods
+          .adopt(id)
+          .send({ from: account })
+          .then((receipt) => {
+            console.log(receipt);
           });
-        } catch (error) {}
       }
-      // Legacy dapp browsers...
-      else if (window.web3) {
-        // Use Mist/MetaMask's provider.
-        web3 = window.web3;
-        console.log("Injected web3 detected.");
+
+      function getAdopters() {
+        let list;
+        contract.methods
+          .getAdopters()
+          .call({ from: account })
+          .then((result) => {
+            adopterList = result;
+            console.log(adopterList);
+            list = document.querySelector(".list-group");
+            for (let adopt of adopterList) {
+              h.push(`<li class="list-group-item">${adopt}</li>`);
+            }
+            list.innerHTML = h.join("");
+          });
       }
-    }
 
-    function getContract() {
-      let abi = [
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "_id",
-              type: "uint256",
-            },
-          ],
-          name: "adopt",
-          outputs: [],
-          stateMutability: "nonpayable",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "",
-              type: "uint256",
-            },
-          ],
-          name: "adopters",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-        {
-          inputs: [
-            {
-              internalType: "uint256",
-              name: "_id",
-              type: "uint256",
-            },
-          ],
-          name: "getOwner",
-          outputs: [
-            {
-              internalType: "address",
-              name: "",
-              type: "address",
-            },
-          ],
-          stateMutability: "view",
-          type: "function",
-        },
-      ];
+      // function getOwner(id) {
+      //   // for (i=0; i<pokemonInfo.length; i++) {
+      //   contract.methods.getOwner(id).call()
+      // .then(function(result){
+      //   console.log(result);
 
-      contract = new web3.eth.Contract(
-        abi,
-        "0x09C522617d81E3989A7DCC3562173996dCD80260"
-      );
-      document.getElementById("contract").innerHTML = contract._address;
-      console.log(contract);
-    }
+      //   document.getElementById(id).style.display = "none";
 
-    // function getAdopters(id) {
-    //   console.log(id);
-    //   contract.methods.adopt(id).send(
-    //     {from:account}
-    //   )
-    //   .then(function(receipt) {
-    //     console.log(receipt);
-    //     // getAdopters 함수 안에 getOwner 함수 써주는 이유는 입양된 강아지 버튼 바로  바꿔주기 위해서
-    //     getOwner(id)
-    //   });
-    // }
+      //   const btnElement = document.getElementById("showText");
+      //   btnElement.innerText = "Already adopted";
 
-    // function getOwner(id) {
-    //   // for (i=0; i<pokemonInfo.length; i++) {
-    //   contract.methods.getOwner(id).call()
-    // .then(function(result){
-    //   console.log(result);
+      // })
+      // }
 
-    //   document.getElementById(id).style.display = "none";
-
-    //   const btnElement = document.getElementById("showText");
-    //   btnElement.innerText = "Already adopted";
-
-    // })
-    // }
-
-    // console.log(contract);
-  </script>
+      // console.log(contract);
+    </script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+      crossorigin="anonymous"
+    ></script>
+  </body>
 </html>
