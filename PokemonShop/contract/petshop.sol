@@ -3,8 +3,11 @@ pragma solidity ^0.8.6;
 contract Petshop {
   
    address[9] public adopters;
+   address owner;
    
-   constructor () public {}
+   constructor () public {
+       owner = msg.sender;
+   }
    
    function adopt(uint petId) public returns (uint) {
        require(petId >= 0 && petId <= 9);

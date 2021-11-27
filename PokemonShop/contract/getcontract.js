@@ -91,7 +91,7 @@ function getContract() {
 
   contract = new web3.eth.Contract(
     abi,
-    "0xbbE4aabcAd9Fb442CDd5c543D85cCDc97Ae8EEfD"
+    "0x0acc3B085367121FF918b448f413eeb7A2A4FdE3"
   );
   document.getElementById("contract").innerHTML = contract._address;
   console.log(contract);
