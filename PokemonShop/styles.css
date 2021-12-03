@@ -28,7 +28,7 @@ h4 {
 
 .container {
   padding: 2px 16px;
-  margin: 30px;
+
   margin-top: 3px;
 }
 
@@ -92,6 +92,28 @@ img {
   transform: translateY(3px);
 }
 
+.getAdopters {
+  position: absolute;
+  top: 70px;
+  right: 350px;
+  margin: 20px;
+  padding: 3px 6px 3px 6px;
+  text-decoration: none;
+  font-size: 15px;
+  color: white;
+  display: inline-block;
+  border-radius: 5px;
+  transition: all 1.5s;
+  text-shadow: 0px -2px rgba(0, 0, 0, 0.44);
+  /* font-family: "Lobster", cursive; */
+  background-color: lightblue;
+  border-bottom: 5px solid skyblue;
+}
+
+.getAdopters:active {
+  transform: translateY(3px);
+}
+
 #adopted {
   height: 20px;
   width: 100px;
@@ -109,4 +131,8 @@ img {
   right: 200px;
   /* margin: 20px;
     padding: 3px 6px 3px 6px; */
+}
+
+.modal-body {
+  margin: 0 auto;
 }
